@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <contextName>guorui-acvitity-rest</contextName>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+  <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <File>./logs/${LOG_FILE}.log</File>
+    <encoder>
+      <pattern>%date [%level] [%thread] %logger{60} [%file : %line] %msg%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>./logs/daily/${LOG_FILE}.%d{yyyy-MM-dd}.gz</fileNamePattern>
+      <maxHistory>180</maxHistory> <!-- 保留180天 -->
+    </rollingPolicy>
+  </appender>
+  <appender name="FILE_REQ" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <File>./logs/${LOG_FILE}-req.log</File>
+    <encoder>
+      <pattern>%date [%level] %msg%n</pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>./logs/daily/${LOG_FILE}-req.%d{yyyy-MM-dd}.gz</fileNamePattern>
+      <maxHistory>180</maxHistory> <!-- 保留180天 -->
+    </rollingPolicy>
+  </appender>
+  <!-- https://blog.csdn.net/papima/article/details/90670110 encoder必须配置,有多种可选-->
+  <!--开启tcp格式的logstash传输，通过TCP协议连接Logstash-->
+  <appender name="STASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+    <destination>192.168.2.191:4667</destination>
+    <!-- encoder必须配置,有多种可选 -->
+    <encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+      <customFields>{"appname":"guorui-weixin-rest"}</customFields>
+    </encoder>
+  </appender>
+  <appender name="FORMAT_REQ" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+    <destination>192.168.2.191:4667</destination>
+    <!-- encoder必须配置,有多种可选 -->
+    <encoder charset="UTF-8" class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+      <providers>
+        <timestamp>
+          <timeZone>UTC+8</timeZone>
+        </timestamp>
+        <pattern>
+          <pattern>
+            {
+            "appname": "guorui-weixin-api",
+            "level": "%level",
+            "accept": "%X{_H_accept:-}",
+            "authorization": "%X{_H_authorization:-}",
+            "client": "%X{_H_client:-}",
+            "client-key": "%X{_H_client-key:-}",
+            "content-type": "%X{_H_content-type:-}",
+            "user-agent": "%X{_H_user-agent:-}",
+            "create_time": "%X{create_time:-}",
+            "next-seq": "%X{nextRequestSeq:-}",
+            "param": "%X{_PARAM_:-}",
+            "uri": "%X{uri:-}",
+            "seq": "%X{requestSeq:-}",
+            "message": "%message"
+            }
+          </pattern>
+        </pattern>
+      </providers>
+    </encoder>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE"/>
+  </root>
+  <logger name="FORMAT_REQ" level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FORMAT_REQ"/>
+  </logger>
+  <logger name="FORMAT_FILE" level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="FILE_REQ"/>
+  </logger>
+</configuration>
